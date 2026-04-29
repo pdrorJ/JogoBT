@@ -1,0 +1,394 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beach Tennis Online</title>
+    <meta name="theme-color" content="#2fe6d2">
+    <meta name="description" content="Beach Tennis Online - arcade e multiplayer.">
+    <meta name="application-name" content="Beach Tennis Online">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="landing-screen" class="screen">
+        <div class="card">
+            <div class="landing-top">
+                <div class="brand">
+                    <div class="logo">🎾</div>
+                    <div>Beach Tennis Pro</div>
+                </div>
+            </div>
+
+            <div class="hero-photo" aria-hidden="true">
+                <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="hSky" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#c9f3ff"/>
+                            <stop offset="0.62" stop-color="#9ad6ff"/>
+                            <stop offset="1" stop-color="#7dc8ff"/>
+                        </linearGradient>
+                        <linearGradient id="hOcean" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#3fe0ff"/>
+                            <stop offset="1" stop-color="#1aa8e6"/>
+                        </linearGradient>
+                        <linearGradient id="hSand" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#ffd08a"/>
+                            <stop offset="1" stop-color="#f7b56d"/>
+                        </linearGradient>
+                        <linearGradient id="hCourt" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#fbe0b7"/>
+                            <stop offset="1" stop-color="#f1c48a"/>
+                        </linearGradient>
+                        <linearGradient id="hPalm" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#4be37c"/>
+                            <stop offset="1" stop-color="#1aa654"/>
+                        </linearGradient>
+                        <radialGradient id="hSun" cx="50%" cy="50%" r="60%">
+                            <stop offset="0" stop-color="rgba(255,255,255,0.92)"/>
+                            <stop offset="0.4" stop-color="rgba(255,241,165,0.7)"/>
+                            <stop offset="1" stop-color="rgba(255,241,165,0)"/>
+                        </radialGradient>
+                        <linearGradient id="hUi" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="rgba(255,255,255,0.78)"/>
+                            <stop offset="1" stop-color="rgba(255,255,255,0.48)"/>
+                        </linearGradient>
+                    </defs>
+
+                    <rect x="0" y="0" width="1200" height="340" fill="url(#hSky)"/>
+                    <rect x="0" y="300" width="1200" height="170" fill="url(#hOcean)" opacity="0.92"/>
+                    <rect x="0" y="420" width="1200" height="300" fill="url(#hSand)"/>
+
+                    <circle cx="1020" cy="118" r="148" fill="url(#hSun)"/>
+                    <circle cx="1020" cy="118" r="66" fill="rgba(255,241,165,0.95)"/>
+
+                    <path d="M0 360 C 140 330, 260 380, 400 350 C 540 320, 660 370, 820 345 C 980 320, 1080 360, 1200 332 L 1200 470 L 0 470 Z" fill="rgba(255,255,255,0.12)"/>
+                    <path d="M0 388 C 160 360, 300 410, 460 382 C 620 354, 760 404, 940 378 C 1090 356, 1160 386, 1200 370 L 1200 470 L 0 470 Z" fill="rgba(255,255,255,0.10)"/>
+
+                    <g opacity="0.95">
+                        <path d="M-10 520 C 90 410, 190 390, 320 420 C 210 470, 120 550, 38 650 C 10 686, -10 720, -10 720 Z" fill="url(#hPalm)"/>
+                        <path d="M1210 530 C 1100 420, 990 392, 880 430 C 980 480, 1068 560, 1160 670 C 1188 704, 1210 720, 1210 720 Z" fill="url(#hPalm)"/>
+                    </g>
+
+                    <polygon points="240,250 960,250 1080,650 120,650" fill="rgba(26,35,64,0.12)"/>
+                    <polygon points="228,238 972,238 1098,662 102,662" fill="url(#hCourt)" stroke="#ffffff" stroke-width="18" stroke-linejoin="round"/>
+
+                    <g stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="600" y1="238" x2="600" y2="662" stroke="rgba(255,255,255,0.32)" stroke-width="8"/>
+                        <line x1="210" y1="350" x2="990" y2="350" stroke="rgba(255,255,255,0.42)" stroke-width="10"/>
+                        <line x1="150" y1="550" x2="1050" y2="550" stroke="rgba(255,255,255,0.42)" stroke-width="12"/>
+                    </g>
+
+                    <g>
+                        <line x1="180" y1="450" x2="1020" y2="450" stroke="#1a2340" stroke-width="12"/>
+                        <line x1="180" y1="442" x2="1020" y2="442" stroke="rgba(255,255,255,0.40)" stroke-width="6"/>
+                        <line x1="180" y1="458" x2="1020" y2="458" stroke="rgba(255,255,255,0.22)" stroke-width="4"/>
+                        <rect x="270" y="446" width="660" height="10" fill="rgba(255,255,255,0.12)"/>
+                        <rect x="170" y="438" width="14" height="26" rx="6" fill="#1a2340"/>
+                        <rect x="1016" y="438" width="14" height="26" rx="6" fill="#1a2340"/>
+                    </g>
+
+                    <g opacity="0.95">
+                        <ellipse cx="540" cy="610" rx="64" ry="18" fill="rgba(0,0,0,0.18)"/>
+                        <circle cx="540" cy="578" r="26" fill="rgba(255,255,255,0.78)"/>
+                        <circle cx="540" cy="578" r="22" fill="rgba(26,35,64,0.18)"/>
+                        <path d="M560 586 C 590 566, 610 570, 630 594" stroke="rgba(255,255,255,0.75)" stroke-width="10" fill="none" stroke-linecap="round"/>
+                        <path d="M560 586 C 590 566, 610 570, 630 594" stroke="rgba(26,35,64,0.22)" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+                        <ellipse cx="700" cy="356" rx="56" ry="16" fill="rgba(0,0,0,0.16)"/>
+                        <circle cx="700" cy="330" r="22" fill="rgba(255,255,255,0.76)"/>
+                        <circle cx="700" cy="330" r="18" fill="rgba(26,35,64,0.18)"/>
+                        <path d="M682 342 C 656 328, 638 334, 620 352" stroke="rgba(255,255,255,0.72)" stroke-width="9" fill="none" stroke-linecap="round"/>
+                        <path d="M682 342 C 656 328, 638 334, 620 352" stroke="rgba(26,35,64,0.22)" stroke-width="5" fill="none" stroke-linecap="round"/>
+                    </g>
+
+                    <g>
+                        <circle cx="650" cy="430" r="14" fill="rgba(204,255,0,0.92)"/>
+                        <circle cx="650" cy="430" r="28" fill="rgba(204,255,0,0.22)"/>
+                        <circle cx="650" cy="430" r="50" fill="rgba(255,255,255,0.12)"/>
+                    </g>
+
+                    <g font-family="Arial Rounded MT Bold, Arial, sans-serif">
+                        <rect x="44" y="34" width="210" height="72" rx="22" fill="url(#hUi)" stroke="rgba(255,255,255,0.85)" stroke-width="6"/>
+                        <text x="72" y="70" font-size="26" fill="rgba(26,35,64,0.82)" letter-spacing="2">SCORE</text>
+                        <text x="84" y="98" font-size="34" fill="rgba(26,35,64,0.92)" letter-spacing="6">5  1</text>
+
+                        <rect x="46" y="590" width="246" height="88" rx="22" fill="url(#hUi)" stroke="rgba(255,255,255,0.85)" stroke-width="6"/>
+                        <text x="74" y="626" font-size="22" fill="rgba(26,35,64,0.82)" letter-spacing="2">POWER</text>
+                        <rect x="74" y="640" width="190" height="18" rx="9" fill="rgba(26,35,64,0.18)"/>
+                        <rect x="74" y="640" width="128" height="18" rx="9" fill="rgba(75,227,124,0.72)"/>
+                    </g>
+                </svg>
+                <div class="hero-overlay">
+                    <div class="hero-kicker">
+                        <span class="pill">Arcade</span>
+                        <span class="pill">Clássico</span>
+                        <span class="pill">Pong</span>
+                        <span class="pill">3D</span>
+                    </div>
+                    <div class="hero-title">Entre na quadra e acerte o timing perfeito</div>
+                    <div class="hero-sub">Escolha um modo e comece agora.</div>
+                </div>
+            </div>
+
+            <h1>Beach Tennis Pro</h1>
+            <p class="subtitle">Escolha um modo e entre na quadra.</p>
+
+            <div class="mode-grid">
+                <button id="landing-mode-classic" class="mode-tile mode-classic" type="button">
+                    <div class="mode-top">
+                        <div class="mode-icon">🎮</div>
+                        <div class="mode-badge live">Disponível</div>
+                    </div>
+                    <div class="mode-preview" aria-hidden="true">
+                        <svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="cSky" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#bfe7ff"/>
+                                    <stop offset="1" stop-color="#9ad6ff"/>
+                                </linearGradient>
+                                <linearGradient id="cSand" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#ffd08a"/>
+                                    <stop offset="1" stop-color="#f7b56d"/>
+                                </linearGradient>
+                            </defs>
+                            <rect x="0" y="0" width="320" height="160" fill="url(#cSky)"/>
+                            <rect x="0" y="70" width="320" height="90" fill="url(#cSand)"/>
+                            <rect x="56" y="28" width="168" height="122" rx="14" fill="#fce1c1" stroke="#ffffff" stroke-width="8"/>
+                            <line x1="140" y1="28" x2="140" y2="150" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+                            <line x1="56" y1="89" x2="224" y2="89" stroke="#1b2631" stroke-width="5"/>
+                            <rect x="246" y="30" width="22" height="120" rx="10" fill="rgba(27,38,49,0.14)" stroke="rgba(255,255,255,0.7)" stroke-width="4"/>
+                            <rect x="246" y="42" width="22" height="58" rx="10" fill="#27ae60" opacity="0.85"/>
+                            <rect x="246" y="100" width="22" height="30" rx="10" fill="#f1c40f" opacity="0.85"/>
+                            <rect x="246" y="130" width="22" height="16" rx="10" fill="#e74c3c" opacity="0.9"/>
+                            <circle cx="140" cy="116" r="5" fill="#ccff00"/>
+                            <circle cx="140" cy="116" r="10" fill="rgba(204,255,0,0.28)"/>
+                            <path d="M92 124 C 104 114, 120 114, 132 124" stroke="rgba(27,38,49,0.55)" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="mode-title">Modo Clássico</div>
+                    <div class="mode-desc">Direção + barra de timing + pontuação 0/15/30/40.</div>
+                </button>
+
+                <button id="landing-mode-2" class="mode-tile mode-pong" type="button">
+                    <div class="mode-top">
+                        <div class="mode-icon">🏓</div>
+                        <div class="mode-badge live">Disponível</div>
+                    </div>
+                    <div class="mode-preview" aria-hidden="true">
+                        <svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="pBg" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="rgba(66,244,209,0.35)"/>
+                                    <stop offset="1" stop-color="rgba(244,140,66,0.25)"/>
+                                </linearGradient>
+                            </defs>
+                            <rect x="0" y="0" width="320" height="160" fill="rgba(255,255,255,0.55)"/>
+                            <rect x="0" y="0" width="320" height="160" fill="url(#pBg)"/>
+                            <rect x="26" y="24" width="268" height="112" rx="16" fill="#fce1c1" stroke="#ffffff" stroke-width="8"/>
+                            <line x1="160" y1="24" x2="160" y2="136" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+                            <rect x="46" y="54" width="12" height="52" rx="999" fill="rgba(255,255,255,0.85)" stroke="rgba(27,38,49,0.25)" stroke-width="2"/>
+                            <rect x="262" y="60" width="12" height="40" rx="999" fill="rgba(255,255,255,0.85)" stroke="rgba(27,38,49,0.25)" stroke-width="2"/>
+                            <circle cx="184" cy="84" r="7" fill="#ccff00"/>
+                            <circle cx="184" cy="84" r="14" fill="rgba(204,255,0,0.28)"/>
+                            <path d="M60 124 C 102 90, 136 92, 170 116" stroke="rgba(27,38,49,0.30)" stroke-width="4" fill="none" stroke-linecap="round"/>
+                            <path d="M60 124 C 102 90, 136 92, 170 116" stroke="rgba(66,244,209,0.35)" stroke-width="7" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="mode-title">Modo Pong</div>
+                    <div class="mode-desc">Quadra horizontal: rebata com a barra de força e vença o computador.</div>
+                </button>
+
+                <button id="landing-mode-3" class="mode-tile mode-3d" type="button">
+                    <div class="mode-top">
+                        <div class="mode-icon">⚡</div>
+                        <div class="mode-badge live">Disponível</div>
+                    </div>
+                    <div class="mode-preview" aria-hidden="true">
+                        <svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="dSky" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#9ad6ff"/>
+                                    <stop offset="1" stop-color="#bfe7ff"/>
+                                </linearGradient>
+                                <linearGradient id="dSand" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#ffd08a"/>
+                                    <stop offset="1" stop-color="#f7b56d"/>
+                                </linearGradient>
+                            </defs>
+                            <rect x="0" y="0" width="320" height="160" fill="url(#dSky)"/>
+                            <rect x="0" y="72" width="320" height="88" fill="url(#dSand)"/>
+                            <polygon points="86,44 234,44 292,148 28,148" fill="#fce1c1" stroke="#ffffff" stroke-width="8" />
+                            <line x1="160" y1="44" x2="160" y2="148" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+                            <line x1="68" y1="96" x2="252" y2="96" stroke="#1b2631" stroke-width="5" opacity="0.85"/>
+                            <line x1="40" y1="148" x2="280" y2="148" stroke="rgba(27,38,49,0.25)" stroke-width="6"/>
+                            <circle cx="160" cy="106" r="7" fill="#ccff00"/>
+                            <circle cx="160" cy="106" r="14" fill="rgba(204,255,0,0.28)"/>
+                            <circle cx="160" cy="106" r="28" fill="rgba(255,255,255,0.25)"/>
+                            <path d="M138 128 C 148 120, 172 120, 182 128" stroke="rgba(255,255,255,0.85)" stroke-width="5" fill="none" stroke-linecap="round"/>
+                            <path d="M130 128 C 146 114, 174 114, 190 128" stroke="rgba(27,38,49,0.28)" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="mode-title">Modo 3D (Timing)</div>
+                    <div class="mode-desc">Primeira pessoa: clique no tempo certo para rebater.</div>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Menu Screen -->
+    <div id="menu-screen" class="screen hidden">
+        <div class="menu-content">
+            <h1>BEACH TENNIS PRO</h1>
+            <div class="menu-characters">
+                <div class="menu-char server-preview">🎾</div>
+                <div class="menu-char receiver-preview">🏓</div>
+            </div>
+            <button id="start-game-btn" class="main-btn bubble-btn">JOGAR</button>
+            <div class="menu-options">
+                <div class="menu-toggle-row">
+                    <span class="mode-label">Single Player</span>
+                    <label class="switch">
+                        <input type="checkbox" id="single-player-toggle">
+                        <span class="switch-ui"></span>
+                    </label>
+                </div>
+                <div class="online-panel">
+                    <div class="online-title">
+                        <span>Online (Beta)</span>
+                        <button id="online-toggle-btn" class="secondary-btn" type="button">ABRIR</button>
+                    </div>
+                    <div id="online-setup" class="online-setup hidden">
+                        <input id="online-room-code" class="online-input" type="text" inputmode="latin-prose" autocomplete="off" spellcheck="false" maxlength="10" placeholder="CÓDIGO DA SALA">
+                        <div class="online-actions">
+                            <button id="online-create-room" class="main-btn bubble-btn" type="button">CRIAR SALA</button>
+                            <button id="online-join-room" class="main-btn bubble-btn" type="button">ENTRAR</button>
+                        </div>
+                        <div class="online-actions">
+                            <button id="online-config-btn" class="secondary-btn" type="button">CONFIGURAR</button>
+                            <button id="online-leave-btn" class="secondary-btn" type="button">SAIR</button>
+                        </div>
+                        <div id="online-status" class="online-status">Desligado.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <header class="game-header">
+            <div class="scoreboard">
+                <div class="score-card">
+                    <div class="score-icon">🎾</div>
+                    <span class="player-name">SACADOR</span>
+                    <div class="game-score-display">
+                        <span id="server-games" class="games-value">0</span>
+                        <span id="server-score" class="score-value">0</span>
+                    </div>
+                </div>
+                <div class="score-card">
+                    <div class="score-icon">🎾</div>
+                    <div class="game-score-display">
+                        <span id="receiver-score" class="score-value">0</span>
+                        <span id="receiver-games" class="games-value">0</span>
+                    </div>
+                    <span class="player-name">RECEBEDOR</span>
+                </div>
+            </div>
+        </header>
+
+        <button id="back-menu-btn" class="secondary-btn" type="button">VOLTAR AO MENU</button>
+
+        <!-- Barra de Timing movida para o topo e alinhada via inline style -->
+        <div id="timing-meter-container" class="hidden" style="top: 70px !important; transform: none !important;">
+            <div id="timing-bar">
+                <div id="zone-easy" class="timing-zone"></div>
+                <div id="zone-hard" class="timing-zone"></div>
+                <div id="zone-perfect" class="timing-zone"></div>
+                <div id="timing-racket">🎾</div>
+            </div>
+            <p id="timing-feedback"></p>
+        </div>
+
+        <div class="court-container">
+            <div class="court">
+                <!-- Top Half (Receiver) -->
+                <div class="court-half top-half">
+                    <div id="receiver-char" class="character receiver">
+                        <div class="char-body">👤</div>
+                        <div class="char-racket">🏓</div>
+                    </div>
+                </div>
+                
+                <div class="net-line"></div>
+                
+                <!-- Bottom Half (Server) -->
+                <div class="court-half bottom-half">
+                    <div id="server-char" class="character server">
+                        <div class="char-body">👤</div>
+                        <div class="char-racket">🎾</div>
+                    </div>
+                </div>
+
+                <!-- Ball -->
+                <div id="pong-player" class="pong-paddle"></div>
+                <div id="pong-ai" class="pong-paddle"></div>
+                <div id="pong-shadow" class="pong-shadow hidden"></div>
+                <div id="pong-star" class="pong-star hidden">⭐</div>
+                <div id="game-ball" class="ball hidden"></div>
+                <div id="fps3d-layer" class="fps3d-layer hidden">
+                    <div id="fps3d-opponent" class="fps3d-opponent hidden">
+                        <div class="fps3d-opponent-body">👤</div>
+                        <div class="fps3d-opponent-racket">🎾</div>
+                    </div>
+                    <div id="fps3d-ball" class="fps3d-ball hidden"></div>
+                    <div id="fps3d-racket" class="fps3d-racket hidden">&#127992;</div>
+                    <div id="fps3d-now" class="fps3d-now hidden">AGORA!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <div id="controls-panel">
+                <p id="turn-indicator">VEZ DO SACADOR</p>
+                <div id="turn-status" aria-live="polite"></div>
+                <div id="pong-stamina" class="pong-stamina hidden">
+                    <div id="pong-stamina-fill" class="pong-stamina-fill"></div>
+                </div>
+                <div class="direction-btns">
+                    <button class="dir-btn" data-choice="Left">ESQUERDA</button>
+                    <button class="dir-btn" data-choice="Middle">MEIO</button>
+                    <button class="dir-btn" data-choice="Right">DIREITA</button>
+                </div>
+                <button id="hit-reception-btn" class="main-btn bubble-btn hidden">RECEPÇÃO!</button>
+                <button id="process-turn-btn" class="main-btn bubble-btn hidden">SACAR!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal hidden">
+        <div class="modal-card">
+            <div class="stars-header">
+                <span class="star">⭐</span>
+                <span class="star big">⭐</span>
+                <span class="star">⭐</span>
+            </div>
+            <div class="ribbon-title">
+                <h2 id="result-title">PONTO!</h2>
+            </div>
+            <div class="modal-content-body">
+                <p class="label-text">RESULTADO</p>
+                <p id="result-text" class="main-result-text"></p>
+            </div>
+            <button id="next-point-btn" class="main-btn bubble-btn">CONTINUAR</button>
+        </div>
+    </div>
+
+    <script type="module" src="game.js"></script>
+</body>
+</html>
