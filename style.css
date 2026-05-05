@@ -644,6 +644,14 @@
             margin-bottom: 30px;
         }
 
+        .menu-warmup {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.92);
+            text-shadow: 0 0 18px rgba(47, 230, 210, 0.22), 0 12px 26px rgba(0,0,0,0.55);
+        }
+
         .menu-char {
             animation: float 3s ease-in-out infinite;
         }
