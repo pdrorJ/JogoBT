@@ -37,11 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let ballCrossedNet = false;
             let perfectTimingReception = false;
 
-            const landingScreen = document.getElementById('landing-screen');
-            const landingModeClassicBtn = document.getElementById('landing-mode-classic');
-            const landingMode2Btn = document.getElementById('landing-mode-2');
-            const landingMode3Btn = document.getElementById('landing-mode-3');
-
             const menuScreen = document.getElementById('menu-screen');
             const gameScreen = document.getElementById('game-screen');
             const startBtn = document.getElementById('start-game-btn');
@@ -446,7 +441,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             function openMenu() {
-                landingScreen.classList.add('hidden');
                 menuScreen.classList.remove('hidden');
                 gameScreen.classList.add('hidden');
             }
@@ -1315,39 +1309,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 timingInterval = null;
                 timingMeterContainer.classList.add('hidden');
                 modal.classList.add('hidden');
-
-                pongStopLoop();
-                clearTimeout(pongAutoHitTimeout);
-                pongAutoHitTimeout = null;
-
-                fps3dStop();
-                fps3dLayer.classList.add('hidden');
-                fps3dBallEl.classList.add('hidden');
-                fps3dRacketEl.classList.add('hidden');
-                fps3dNowEl.classList.add('hidden');
-                fps3dOpponentEl.classList.add('hidden');
-
-                pongStaminaEl.classList.add('hidden');
-                pongStarEl.classList.add('hidden');
-                pongShadowEl.classList.add('hidden');
                 ball.classList.add('hidden');
                 ball.classList.remove('fire-trail');
-
-                gameScreen.classList.add('hidden');
-                gameScreen.classList.remove('pong-mode');
-                gameScreen.classList.remove('fps3d-mode');
-                menuScreen.classList.add('hidden');
-                landingScreen.classList.remove('hidden');
                 isGameOver = false;
                 nextBtn.textContent = 'CONTINUAR';
                 gameMode = 'classic';
+                openMenu();
             }
 
-            landingModeClassicBtn.addEventListener('click', openMenu);
-            landingMode3Btn.addEventListener('click', () => {
-                fps3dSetUi();
-                fps3dStartRally();
-            });
             backMenuBtn.addEventListener('click', backToLanding);
 
             onlineToggleBtn.addEventListener('click', () => {
@@ -1460,24 +1429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameMode = 'classic';
                 isSinglePlayer = onlineEnabled ? false : singlePlayerToggle.checked;
                 menuScreen.classList.add('hidden');
-                landingScreen.classList.add('hidden');
                 gameScreen.classList.remove('hidden');
-                gameScreen.classList.remove('pong-mode');
-                gameScreen.classList.remove('fps3d-mode');
-                pongStopLoop();
-                pongCharging = false;
-                pongAwaitingHit = false;
-                pongHitPhase = 'none';
-                clearTimeout(pongAutoHitTimeout);
-                pongAutoHitTimeout = null;
-                pongStaminaEl.classList.add('hidden');
-                pongStarEl.classList.add('hidden');
-                pongShadowEl.classList.add('hidden');
                 ball.classList.remove('fire-trail');
-                fps3dStop();
-                fps3dLayer.classList.add('hidden');
-                fps3dBallEl.classList.add('hidden');
-                fps3dRacketEl.classList.add('hidden');
                 syncScoreboardNames();
                 dirBtns.forEach((b, i) => { b.textContent = dirBtnClassicLabels[i]; });
                 easyHeight = 250;
@@ -2048,34 +2001,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 if (isGameOver) {
-                    pongStopLoop();
-                    fps3dStop();
                     timingMeterContainer.classList.add('hidden');
-                    fps3dLayer.classList.add('hidden');
-                    fps3dBallEl.classList.add('hidden');
-                    fps3dRacketEl.classList.add('hidden');
-                    pongStaminaEl.classList.add('hidden');
-                    pongStarEl.classList.add('hidden');
-                    pongShadowEl.classList.add('hidden');
                     ball.classList.remove('fire-trail');
-                    gameScreen.classList.remove('pong-mode');
-                    gameScreen.classList.remove('fps3d-mode');
-                    landingScreen.classList.remove('hidden');
-                    menuScreen.classList.add('hidden');
                     gameScreen.classList.add('hidden');
+                    openMenu();
                 } else {
-                    if (gameMode === 'pong') {
-                        pongStartRally();
-                    } else if (gameMode === 'fps3d') {
-                        fps3dStartRally();
-                    } else {
-                        if (onlineEnabled) {
-                            if (onlineRole !== 'SERVER') return;
-                            onlineBroadcast({ type: 'next' });
-                        }
-                        resetPoint();
-                        classicUpdateOnlineAccess();
+                    if (onlineEnabled) {
+                        if (onlineRole !== 'SERVER') return;
+                        onlineBroadcast({ type: 'next' });
                     }
+                    resetPoint();
+                    classicUpdateOnlineAccess();
                 }
             });
 
@@ -2756,9 +2692,5 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            landingMode2Btn.addEventListener('click', () => {
-                pongSetUi();
-                pongStartRally();
-            });
         });
     
