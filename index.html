@@ -1,12 +1,12 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beach Tennis Online</title>
+    <title>Play Na Quadra</title>
     <meta name="theme-color" content="#2fe6d2">
-    <meta name="description" content="Beach Tennis Online - arcade e multiplayer.">
-    <meta name="application-name" content="Beach Tennis Online">
+    <meta name="description" content="Play Na Quadra - arcade e multiplayer.">
+    <meta name="application-name" content="Play Na Quadra">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
@@ -18,7 +18,7 @@
             <div class="landing-top">
                 <div class="brand">
                     <div class="logo">🎾</div>
-                    <div>Beach Tennis Pro</div>
+                    <div>Play Na Quadra</div>
                 </div>
             </div>
 
@@ -133,7 +133,7 @@
                 </div>
             </div>
 
-            <h1>Beach Tennis Pro</h1>
+            <h1>Play Na Quadra</h1>
             <p class="subtitle">Escolha um modo e entre na quadra.</p>
 
             <div class="mode-grid">
@@ -242,7 +242,7 @@
     <!-- Menu Screen -->
     <div id="menu-screen" class="screen hidden">
         <div class="menu-content">
-            <h1>BEACH TENNIS PRO</h1>
+            <h1>PLAY NA QUADRA</h1>
             <div class="menu-characters">
                 <div class="menu-char server-preview">🎾</div>
                 <div class="menu-char receiver-preview">🏓</div>
@@ -262,6 +262,7 @@
                         <button id="online-toggle-btn" class="secondary-btn" type="button">ABRIR</button>
                     </div>
                     <div id="online-setup" class="online-setup hidden">
+                        <input id="online-player-name" class="online-input" type="text" autocomplete="off" spellcheck="false" maxlength="18" placeholder="SEU NOME/APELIDO">
                         <input id="online-room-code" class="online-input" type="text" inputmode="latin-prose" autocomplete="off" spellcheck="false" maxlength="10" placeholder="CÓDIGO DA SALA">
                         <div class="online-actions">
                             <button id="online-create-room" class="main-btn bubble-btn" type="button">CRIAR SALA</button>
@@ -335,6 +336,8 @@
                     </div>
                 </div>
 
+                <div class="baseline-label" aria-hidden="true">Aquecimento</div>
+
                 <!-- Ball -->
                 <div id="pong-player" class="pong-paddle"></div>
                 <div id="pong-ai" class="pong-paddle"></div>
@@ -386,7 +389,10 @@
                 <p class="label-text">RESULTADO</p>
                 <p id="result-text" class="main-result-text"></p>
             </div>
-            <button id="next-point-btn" class="main-btn bubble-btn">CONTINUAR</button>
+            <div class="modal-actions">
+                <button id="play-again-btn" class="secondary-btn hidden" type="button">JOGAR OUTRA</button>
+                <button id="next-point-btn" class="main-btn bubble-btn" type="button">CONTINUAR</button>
+            </div>
         </div>
     </div>
 

@@ -16,8 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let receiverPoints = 0;
             let serverGames = 0;
             let receiverGames = 0;
-            let serverSets = 0;
-            let receiverSets = 0;
             let currentGameServerRole = 'SERVER';
             let isSinglePlayer = false;
             let currentTurn = 'SERVER';
@@ -50,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const singlePlayerToggle = document.getElementById('single-player-toggle');
             const onlineToggleBtn = document.getElementById('online-toggle-btn');
             const onlineSetupEl = document.getElementById('online-setup');
+            const onlinePlayerNameInput = document.getElementById('online-player-name');
             const onlineRoomInput = document.getElementById('online-room-code');
             const onlineCreateRoomBtn = document.getElementById('online-create-room');
             const onlineJoinRoomBtn = document.getElementById('online-join-room');
@@ -60,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const serveBtn = document.getElementById('process-turn-btn');
             const receptionBtn = document.getElementById('hit-reception-btn');
             const nextBtn = document.getElementById('next-point-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
             const backMenuBtn = document.getElementById('back-menu-btn');
 
             const turnIndicator = document.getElementById('turn-indicator');
@@ -155,8 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let fps3dCurvePhase = 0;
 
             const scoreMap = { 0: '0', 1: '15', 2: '30', 3: '40' };
-            const GAMES_PER_SET = 6;
-            const SETS_TO_WIN_MATCH = 2;
+            const GAMES_TO_WIN_MATCH = 2;
 
             let onlineEnabled = false;
             let onlineRole = null;
@@ -185,6 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let onlineLastResult = null;
             let supabaseClient = null;
             let supabaseChannel = null;
+            let onlineLocalName = 'VOCÊ';
+            let onlineOpponentName = 'ADVERSÁRIO';
+            let classicAutoAdvanceTimeout = null;
+            let turnStatusHideTimeout = null;
 
             function clamp01(v) {
                 return Math.max(0, Math.min(1, v));
@@ -210,10 +213,104 @@ document.addEventListener('DOMContentLoaded', () => {
                 return role === 'SERVER' ? 'RECEIVER' : 'SERVER';
             }
 
+            function normalizePlayerName(raw) {
+                const cleaned = (raw || '')
+                    .toString()
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!cleaned) return '';
+                return cleaned.slice(0, 18);
+            }
+
+            function getStoredPlayerName() {
+                return normalizePlayerName(localStorage.getItem('bt_player_name'));
+            }
+
+            function setStoredPlayerName(name) {
+                const v = normalizePlayerName(name);
+                if (!v) {
+                    localStorage.removeItem('bt_player_name');
+                    return '';
+                }
+                localStorage.setItem('bt_player_name', v);
+                return v;
+            }
+
+            function onlineRecomputeOpponentName() {
+                let opponent = '';
+                for (const [id, peer] of onlinePeers.entries()) {
+                    if (!id || id === onlinePlayerId) continue;
+                    const candidate = normalizePlayerName(peer?.name);
+                    if (candidate) {
+                        opponent = candidate;
+                        break;
+                    }
+                }
+                onlineOpponentName = opponent || 'ADVERSÁRIO';
+            }
+
+            function getDisplayNameForRole(role) {
+                if (onlineEnabled && onlineRole) {
+                    return role === onlineRole ? (onlineLocalName || 'VOCÊ') : (onlineOpponentName || 'ADVERSÁRIO');
+                }
+                if (isSinglePlayer) {
+                    return role === 'SERVER' ? (onlineLocalName || 'VOCÊ') : 'COMPUTADOR';
+                }
+                return role === 'SERVER' ? 'JOGADOR 1' : 'JOGADOR 2';
+            }
+
+            function syncScoreboardNames() {
+                if (!playerNameEls.length) return;
+                if (onlineEnabled && onlineRole) {
+                    onlineRecomputeOpponentName();
+                }
+                if (playerNameEls[0]) playerNameEls[0].textContent = getDisplayNameForRole('SERVER');
+                if (playerNameEls[1]) playerNameEls[1].textContent = getDisplayNameForRole('RECEIVER');
+            }
+
+            function clearTurnStatusSoon(delayMs) {
+                if (turnStatusHideTimeout) clearTimeout(turnStatusHideTimeout);
+                turnStatusHideTimeout = setTimeout(() => {
+                    setTurnStatus('');
+                }, delayMs);
+            }
+
+            function showPointMessage(winnerRole) {
+                const mine = (onlineEnabled && onlineRole) ? (winnerRole === onlineRole) : (isSinglePlayer ? (winnerRole === 'SERVER') : false);
+                const winnerName = getDisplayNameForRole(winnerRole);
+                const text = mine ? 'Ponto seu' : `Ponto do ${winnerName}`;
+                setTurnStatus(text, mine ? 'attack' : 'defense');
+                pulseTurnStatus();
+                clearTurnStatusSoon(1100);
+            }
+
+            function scheduleClassicAutoAdvance(delayMs) {
+                if (classicAutoAdvanceTimeout) clearTimeout(classicAutoAdvanceTimeout);
+                classicAutoAdvanceTimeout = setTimeout(() => {
+                    if (gameMode !== 'classic') return;
+                    if (isGameOver) return;
+                    if (onlineEnabled && onlineAttackDefenseMode) {
+                        onlineResolving = false;
+                        dirBtns.forEach(b => b.classList.remove('selected'));
+                        onlineScoreFlash = null;
+                        classicUpdateOnlineAccess();
+                        return;
+                    }
+                    resetPoint();
+                    classicUpdateOnlineAccess();
+                }, delayMs);
+            }
+
             function getTennisDisplayPoints(selfPoints, otherPoints) {
                 if (selfPoints === 4) return 'AD';
                 if (selfPoints >= 3 && otherPoints >= 3 && selfPoints === otherPoints) return '40';
                 return scoreMap[selfPoints] || '0';
+            }
+
+            function getMatchWinnerRole() {
+                if (serverGames >= GAMES_TO_WIN_MATCH) return 'SERVER';
+                if (receiverGames >= GAMES_TO_WIN_MATCH) return 'RECEIVER';
+                return null;
             }
 
             function applyTennisPointToState(state, winnerRole) {
@@ -223,8 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 let lp = loserRole === 'SERVER' ? next.serverPoints : next.receiverPoints;
 
                 let gameWon = false;
-                let setWon = false;
-                let setWinnerRole = null;
 
                 if (wp >= 3 && lp >= 3) {
                     if (wp === 3 && lp === 3) {
@@ -252,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         next.receiverPoints = wp;
                         next.serverPoints = lp;
                     }
-                    return { next, gameWon, setWon, setWinnerRole };
+                    return { next, gameWon };
                 }
 
                 if (winnerRole === 'SERVER') next.serverGames += 1;
@@ -260,25 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 next.serverPoints = 0;
                 next.receiverPoints = 0;
 
-                const maxGames = Math.max(next.serverGames, next.receiverGames);
-                const diffGames = Math.abs(next.serverGames - next.receiverGames);
-                if (maxGames >= GAMES_PER_SET && diffGames >= 2) {
-                    setWon = true;
-                    setWinnerRole = next.serverGames > next.receiverGames ? 'SERVER' : 'RECEIVER';
-                } else if (maxGames === (GAMES_PER_SET + 1)) {
-                    setWon = true;
-                    setWinnerRole = next.serverGames > next.receiverGames ? 'SERVER' : 'RECEIVER';
-                }
-
-                if (setWon && setWinnerRole) {
-                    if (setWinnerRole === 'SERVER') next.serverSets += 1;
-                    if (setWinnerRole === 'RECEIVER') next.receiverSets += 1;
-                    next.serverGames = 0;
-                    next.receiverGames = 0;
-                }
-
                 next.currentGameServerRole = getOtherRole(next.currentGameServerRole);
-                return { next, gameWon, setWon, setWinnerRole };
+                return { next, gameWon };
             }
 
             function applyCourtPerspective() {
@@ -336,9 +414,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderStars(starsCount);
                 resultTitle.textContent = title;
                 resultText.innerHTML = message;
+                if (playAgainBtn) playAgainBtn.classList.add('hidden');
+                nextBtn.classList.remove('hidden');
+                nextBtn.disabled = false;
                 setTimeout(() => {
                     modal.classList.remove('hidden');
                 }, 1200);
+            }
+
+            function showMatchEndPrompt(winnerRole) {
+                const winnerName = getDisplayNameForRole(winnerRole);
+                renderStars(0);
+                resultTitle.textContent = winnerName;
+                resultText.innerHTML = 'Jogar outra partida?';
+                nextBtn.textContent = 'VOLTAR AO MENU';
+                nextBtn.classList.remove('hidden');
+                nextBtn.disabled = false;
+                if (playAgainBtn) {
+                    playAgainBtn.classList.remove('hidden');
+                    playAgainBtn.disabled = false;
+                }
+                modal.classList.remove('hidden');
             }
 
             function fps3dOpponentSwing() {
@@ -565,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (onlineRole !== prevRole) {
                     applyCourtPerspective();
+                    syncScoreboardNames();
                     updateUI();
                     classicUpdateOnlineAccess();
                 }
@@ -641,8 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 receiverPoints = 0;
                 serverGames = 0;
                 receiverGames = 0;
-                serverSets = 0;
-                receiverSets = 0;
                 isGameOver = false;
                 timingMeterContainer.classList.add('hidden');
                 serveBtn.classList.add('hidden');
@@ -699,8 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     receiverPoints,
                     serverGames,
                     receiverGames,
-                    serverSets,
-                    receiverSets,
                     currentGameServerRole
                 }, scorerRole);
                 const nextState = computed.next;
@@ -716,12 +809,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     receiverPoints: nextState.receiverPoints,
                     serverGames: nextState.serverGames,
                     receiverGames: nextState.receiverGames,
-                    serverSets: nextState.serverSets,
-                    receiverSets: nextState.receiverSets,
                     currentGameServerRole: nextState.currentGameServerRole,
-                    gameWon: computed.gameWon,
-                    setWon: computed.setWon,
-                    setWinnerRole: computed.setWinnerRole
+                    gameWon: computed.gameWon
                 };
 
                 onlineLastResult = result;
@@ -739,8 +828,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 receiverPoints = payload.receiverPoints ?? receiverPoints;
                 serverGames = payload.serverGames ?? serverGames;
                 receiverGames = payload.receiverGames ?? receiverGames;
-                serverSets = payload.serverSets ?? serverSets;
-                receiverSets = payload.receiverSets ?? receiverSets;
                 if (payload.currentGameServerRole) {
                     currentGameServerRole = payload.currentGameServerRole;
                 } else if (payload.gameWon) {
@@ -775,18 +862,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 onlineAnimateAttackDefenseBall(payload.attackerRole, payload.move);
 
-                const youScored = payload.scorerRole === onlineRole;
-                const title = payload.gameWon ? 'GAME!' : (payload.defended ? 'DEFESA!' : 'PONTO!');
-                const message = payload.defended
-                    ? (payload.gameWon
-                        ? (youScored ? 'Defesa realizada! Você fechou o game.' : 'Defesa realizada! Game do defensor.')
-                        : (youScored ? 'Defesa realizada! Você pontuou.' : 'Defesa realizada! Ponto do defensor.'))
-                    : (payload.gameWon
-                        ? (youScored ? 'Ataque perfeito! Você fechou o game.' : 'Ataque passou! Game do atacante.')
-                        : (youScored ? 'Ataque perfeito! Você pontuou.' : 'Ataque passou! Ponto do atacante.'));
-                showResultModal(title, message, payload.defended ? 3 : 1);
+                const winnerRole = getMatchWinnerRole();
+                isGameOver = !!winnerRole;
+                if (isGameOver && winnerRole) {
+                    showMatchEndPrompt(winnerRole);
+                    classicUpdateOnlineAccess();
+                    return;
+                }
+                if (payload.scorerRole) {
+                    showPointMessage(payload.scorerRole);
+                }
 
                 classicUpdateOnlineAccess();
+                scheduleClassicAutoAdvance(1200);
             }
 
             function onlineOnPlayerMove(payload) {
@@ -904,8 +992,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (msg.state) onlineApplyState(msg.state);
                     if (msg.shake) triggerScreenShake();
                     if (msg.winner) createSandParticles(msg.winner);
-                    if (msg.modal) {
-                        showResultModal(msg.modal.title || 'RESULTADO', msg.modal.message || '', msg.modal.starsCount || 0);
+                    if (isGameOver) {
+                        const winnerRole = getMatchWinnerRole();
+                        if (winnerRole) showMatchEndPrompt(winnerRole);
+                        classicUpdateOnlineAccess();
+                        return;
+                    }
+                    if (msg.winner) {
+                        showPointMessage(msg.winner);
+                        scheduleClassicAutoAdvance(900);
                     }
                     return;
                 }
@@ -940,8 +1035,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 onlineLastSentMove = null;
                 onlineLastSentGuess = null;
                 onlineLastResult = null;
-                serverSets = 0;
-                receiverSets = 0;
                 onlineStopResendLoop();
                 if (onlineHelloInterval) {
                     clearInterval(onlineHelloInterval);
@@ -973,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                onlineLocalName = setStoredPlayerName(onlinePlayerNameInput?.value) || getStoredPlayerName() || 'VOCÊ';
                 onlinePlayerId = (window.crypto?.randomUUID?.() || `p_${Math.random().toString(16).slice(2)}_${Date.now()}`);
                 onlineIsCreator = !!isCreator;
                 onlineHostId = onlineIsCreator ? onlinePlayerId : null;
@@ -1027,8 +1121,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const id = payload.from || payload.playerId;
                     if (!id) return;
                     const prev = onlinePeers.get(id) || {};
-                    onlinePeers.set(id, { ...prev, lastSeen: payload.at || now });
+                    const name = normalizePlayerName(payload.name);
+                    onlinePeers.set(id, { ...prev, lastSeen: payload.at || now, ...(name ? { name } : {}) });
                     onlineRecomputeFromPeers();
+                    syncScoreboardNames();
                 });
 
                 ch.on('broadcast', { event: 'host_announce' }, ({ payload }) => {
@@ -1036,6 +1132,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const hostId = payload.hostId;
                     if (!hostId) return;
                     onlineHostId = hostId;
+                    const name = normalizePlayerName(payload.name);
+                    if (name) {
+                        const prev = onlinePeers.get(hostId) || {};
+                        onlinePeers.set(hostId, { ...prev, lastSeen: payload.at || Date.now(), name });
+                    }
                     onlineRecomputeFromPeers();
                     onlineEnabled = true;
                     singlePlayerToggle.checked = false;
@@ -1056,7 +1157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!onlineIsCreator) return;
                     if (joinerId === onlinePlayerId) return;
                     const prev = onlinePeers.get(joinerId) || {};
-                    onlinePeers.set(joinerId, { ...prev, lastSeen: payload.at || Date.now() });
+                    const name = normalizePlayerName(payload.name);
+                    onlinePeers.set(joinerId, { ...prev, lastSeen: payload.at || Date.now(), ...(name ? { name } : {}) });
                     onlineRecomputeFromPeers();
                     onlineEnabled = true;
                     singlePlayerToggle.checked = false;
@@ -1064,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setOnlineStatus(`Sala ${onlineRoomCode}: jogador entrou! Iniciando...`);
                     startBtn.disabled = true;
                     startBtn.textContent = 'INICIANDO...';
-                    onlineSendEvent('join_ack', { hostId: onlinePlayerId, to: joinerId, startNow: true });
+                    onlineSendEvent('join_ack', { hostId: onlinePlayerId, hostName: onlineLocalName, to: joinerId, startNow: true });
                     if (!onlineGameStarted) {
                         onlineGameStarted = true;
                         onlinePendingStart = false;
@@ -1082,6 +1184,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (payload.hostId) {
                         onlineHostId = payload.hostId;
                         onlineRecomputeFromPeers();
+                        const name = normalizePlayerName(payload.hostName);
+                        if (name) {
+                            const prev = onlinePeers.get(payload.hostId) || {};
+                            onlinePeers.set(payload.hostId, { ...prev, lastSeen: payload.at || Date.now(), name });
+                        }
                     }
                     onlineEnabled = true;
                     singlePlayerToggle.checked = false;
@@ -1140,6 +1247,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
+                ch.on('broadcast', { event: 'rematch' }, ({ payload }) => {
+                    if (!payload) return;
+                    if (payload.from && payload.from === onlinePlayerId) return;
+                    modal.classList.add('hidden');
+                    if (playAgainBtn) playAgainBtn.classList.add('hidden');
+                    nextBtn.textContent = 'CONTINUAR';
+                    isGameOver = false;
+                    onlineStartAttackDefenseLocal();
+                });
+
                 const status = await Promise.race([
                     new Promise((resolve) => {
                         ch.subscribe((s) => {
@@ -1162,6 +1279,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 onlinePeers = new Map([[onlinePlayerId, { lastSeen: Date.now() }]]);
                 onlineRecomputeFromPeers();
+                onlinePeers.set(onlinePlayerId, { lastSeen: Date.now(), name: onlineLocalName });
+                syncScoreboardNames();
                 setOnlineStatus(onlineIsCreator
                     ? `Conectado na sala ${onlineRoomCode}. Aguardando outro jogador...`
                     : `Conectado na sala ${onlineRoomCode}. Procurando host...`);
@@ -1170,19 +1289,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (onlineHelloInterval) clearInterval(onlineHelloInterval);
                 onlineHelloInterval = setInterval(() => {
-                    onlineSendEvent('hello', { playerId: onlinePlayerId });
+                    onlineSendEvent('hello', { playerId: onlinePlayerId, name: onlineLocalName });
                 }, 1500);
-                onlineSendEvent('hello', { playerId: onlinePlayerId });
+                onlineSendEvent('hello', { playerId: onlinePlayerId, name: onlineLocalName });
 
                 if (onlineIsCreator) {
-                    onlineSendEvent('host_announce', { hostId: onlinePlayerId });
+                    onlineSendEvent('host_announce', { hostId: onlinePlayerId, name: onlineLocalName });
                 } else {
                     if (onlineJoinInterval) clearInterval(onlineJoinInterval);
                     onlineJoinInterval = setInterval(() => {
                         if (onlineGameStarted) return;
-                        onlineSendEvent('join_request', { playerId: onlinePlayerId });
+                        onlineSendEvent('join_request', { playerId: onlinePlayerId, name: onlineLocalName });
                     }, 1500);
-                    onlineSendEvent('join_request', { playerId: onlinePlayerId });
+                    onlineSendEvent('join_request', { playerId: onlinePlayerId, name: onlineLocalName });
                 }
 
                 try {
@@ -1245,6 +1364,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hasEmbeddedSupabase) {
                 onlineConfigBtn.classList.add('hidden');
                 setOnlineStatus('Online pronto. Crie/entre em uma sala.');
+            }
+
+            onlineLocalName = getStoredPlayerName() || 'VOCÊ';
+            if (onlinePlayerNameInput) {
+                onlinePlayerNameInput.value = onlineLocalName === 'VOCÊ' ? '' : onlineLocalName;
+                onlinePlayerNameInput.addEventListener('input', () => {
+                    onlineLocalName = setStoredPlayerName(onlinePlayerNameInput.value) || 'VOCÊ';
+                    if (onlineEnabled) {
+                        const prev = onlinePeers.get(onlinePlayerId) || {};
+                        onlinePeers.set(onlinePlayerId, { ...prev, lastSeen: Date.now(), name: onlineLocalName });
+                        syncScoreboardNames();
+                        onlineSendEvent('hello', { playerId: onlinePlayerId, name: onlineLocalName });
+                    }
+                });
             }
 
             onlineCreateRoomBtn.addEventListener('click', async () => {
@@ -1345,13 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fps3dLayer.classList.add('hidden');
                 fps3dBallEl.classList.add('hidden');
                 fps3dRacketEl.classList.add('hidden');
-                if (onlineEnabled) {
-                    playerNameEls[0].textContent = onlineRole === 'SERVER' ? 'VOCÊ' : 'ONLINE';
-                    playerNameEls[1].textContent = onlineRole === 'RECEIVER' ? 'VOCÊ' : 'ONLINE';
-                } else {
-                    playerNameEls[0].textContent = 'SACADOR';
-                    playerNameEls[1].textContent = 'RECEBEDOR';
-                }
+                syncScoreboardNames();
                 dirBtns.forEach((b, i) => { b.textContent = dirBtnClassicLabels[i]; });
                 easyHeight = 250;
                 hardHeight = 140;
@@ -1381,7 +1508,6 @@ document.addEventListener('DOMContentLoaded', () => {
             function resetMatch() {
                 serverPoints = 0; receiverPoints = 0;
                 serverGames = 0; receiverGames = 0;
-                serverSets = 0; receiverSets = 0;
                 currentGameServerRole = 'SERVER';
                 isGameOver = false;
                 nextBtn.textContent = 'CONTINUAR';
@@ -1767,20 +1893,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             isGameOver,
                             lastTimingResult,
                             nextBtnText: nextBtn.textContent
-                        },
-                        modal: {
-                            title: winner === sacadorRole ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
-                            message,
-                            starsCount: getStarsForTimingResult(timingResult)
                         }
                     });
                 }
+                if (isGameOver) {
+                    const winnerRole = getMatchWinnerRole();
+                    if (winnerRole) showMatchEndPrompt(winnerRole);
+                    classicUpdateOnlineAccess();
+                    return;
+                }
 
-                showResultModal(
-                    winner === sacadorRole ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
-                    message,
-                    getStarsForTimingResult(timingResult)
-                );
+                showPointMessage(winner);
+                scheduleClassicAutoAdvance(900);
             }
 
             function updateScoring(winner) {
@@ -1789,71 +1913,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     receiverPoints,
                     serverGames,
                     receiverGames,
-                    serverSets,
-                    receiverSets,
                     currentGameServerRole
                 }, winner);
                 serverPoints = computed.next.serverPoints;
                 receiverPoints = computed.next.receiverPoints;
                 serverGames = computed.next.serverGames;
                 receiverGames = computed.next.receiverGames;
-                serverSets = computed.next.serverSets;
-                receiverSets = computed.next.receiverSets;
                 currentGameServerRole = computed.next.currentGameServerRole;
 
-                if (serverSets >= SETS_TO_WIN_MATCH || receiverSets >= SETS_TO_WIN_MATCH) {
-                    isGameOver = true;
-                    const overallWinner = serverSets >= SETS_TO_WIN_MATCH ? 'JOGADOR 1' : 'JOGADOR 2';
-                    resultTitle.textContent = 'FIM DE JOGO!';
-                    resultText.innerHTML = `<strong>${overallWinner} VENCEU A PARTIDA!</strong>`;
-                    nextBtn.textContent = 'VOLTAR AO MENU';
-                }
+                isGameOver = !!getMatchWinnerRole();
                 updateUI();
-            }
-
-            function winGame(winner) {
-                if (winner === 'SERVER') {
-                    serverGames++;
-                } else {
-                    receiverGames++;
-                }
-                serverPoints = 0;
-                receiverPoints = 0;
-
-                if (serverGames >= GAMES_PER_SET || receiverGames >= GAMES_PER_SET) {
-                    winSet(serverGames >= GAMES_PER_SET ? 'SERVER' : 'RECEIVER');
-                }
-            }
-
-            function winSet(winner) {
-                if (winner === 'SERVER') {
-                    serverSets++;
-                } else {
-                    receiverSets++;
-                }
-
-                serverGames = 0;
-                receiverGames = 0;
-                serverPoints = 0;
-                receiverPoints = 0;
-
-                if (serverSets >= SETS_TO_WIN_MATCH || receiverSets >= SETS_TO_WIN_MATCH) {
-                    isGameOver = true;
-                    const overallWinner = serverSets >= SETS_TO_WIN_MATCH ? 'SACADOR' : 'RECEBEDOR';
-                    resultTitle.textContent = 'FIM DE JOGO!';
-                    resultText.innerHTML = `<strong>${overallWinner} VENCEU A PARTIDA!</strong>`;
-                    nextBtn.textContent = 'VOLTAR AO MENU';
-                }
             }
 
             function renderServerSetMarks() {
                 if (!serverSetMarksEl) return;
-                const s = serverSets > 0 ? Array.from({ length: serverSets }).map(() => '●').join(' ') : '';
-                const r = receiverSets > 0 ? Array.from({ length: receiverSets }).map(() => '●').join(' ') : '';
-                const left = `<span style="color: rgba(47, 255, 143, 0.95);">${s}</span>`;
-                const right = `<span style="color: rgba(255, 79, 216, 0.95);">${r}</span>`;
-                const sep = (s && r) ? `<span style="opacity:0.45; padding: 0 8px;">|</span>` : '';
-                serverSetMarksEl.innerHTML = `${left}${sep}${right}`;
+                serverSetMarksEl.innerHTML = `<span style="opacity:0.8; font-weight: 900; letter-spacing: 1px;">MELHOR DE 3 GAMES (2 PARA VENCER)</span>`;
                 serverSetMarksEl.style.marginTop = '6px';
                 serverSetMarksEl.style.minHeight = '18px';
                 serverSetMarksEl.style.fontWeight = '900';
@@ -1894,6 +1968,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     serverGamesEl.textContent = String(serverGames);
                     receiverGamesEl.textContent = String(receiverGames);
+                    syncScoreboardNames();
                     renderServerSetMarks();
                     return;
                 }
@@ -1901,10 +1976,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 receiverScoreEl.textContent = getTennisDisplayPoints(receiverPoints, serverPoints);
                 serverGamesEl.textContent = serverGames;
                 receiverGamesEl.textContent = receiverGames;
-                if (!onlineEnabled) {
-                    if (playerNameEls[0]) playerNameEls[0].textContent = currentGameServerRole === 'SERVER' ? 'SACADOR' : 'RECEBEDOR';
-                    if (playerNameEls[1]) playerNameEls[1].textContent = currentGameServerRole === 'RECEIVER' ? 'SACADOR' : 'RECEBEDOR';
-                }
+                syncScoreboardNames();
                 renderServerSetMarks();
             }
 
@@ -1950,8 +2022,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            if (playAgainBtn) {
+                playAgainBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    playAgainBtn.classList.add('hidden');
+                    nextBtn.textContent = 'CONTINUAR';
+                    isGameOver = false;
+                    if (onlineEnabled) {
+                        onlineSendEvent('rematch', {});
+                        onlineStartAttackDefenseLocal();
+                        return;
+                    }
+                    resetMatch();
+                });
+            }
+
             nextBtn.addEventListener('click', () => {
                 modal.classList.add('hidden');
+                if (playAgainBtn) playAgainBtn.classList.add('hidden');
                 if (gameMode === 'classic' && onlineEnabled && onlineAttackDefenseMode) {
                     onlineResolving = false;
                     dirBtns.forEach(b => b.classList.remove('selected'));

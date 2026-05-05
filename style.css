@@ -1111,6 +1111,20 @@
             background-image: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(6, 8, 20, 0.72) 10px, rgba(6, 8, 20, 0.72) 12px);
         }
 
+        .baseline-label {
+            position: absolute;
+            left: 50%;
+            bottom: 8px;
+            transform: translateX(-50%);
+            z-index: 2;
+            pointer-events: none;
+            font-weight: 900;
+            letter-spacing: 1px;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: 0 0 18px rgba(0, 0, 0, 0.65);
+        }
+
         .court-half {
             height: 50%;
             width: 100%;
@@ -1205,6 +1219,10 @@
         .pong-mode .court {
             aspect-ratio: 2 / 1;
             --courtWOverH: 2;
+        }
+
+        .pong-mode .baseline-label {
+            display: none !important;
         }
 
         .pong-mode .court::after {
@@ -1486,6 +1504,7 @@
         .fps3d-mode #server-char,
         .fps3d-mode #receiver-char,
         .fps3d-mode .pong-paddle,
+        .fps3d-mode .baseline-label,
         .fps3d-mode #game-ball {
             display: none !important;
         }
@@ -1620,6 +1639,14 @@
             padding: 22px 20px;
             width: min(520px, 92%);
             text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 14px;
         }
 
         .stars-header {
