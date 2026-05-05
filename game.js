@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let receiverGames = 0;
             let serverSets = 0;
             let receiverSets = 0;
+            let currentGameServerRole = 'SERVER';
             let isSinglePlayer = false;
             let currentTurn = 'SERVER';
             let serverChoice = null;
@@ -187,6 +188,125 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function clamp01(v) {
                 return Math.max(0, Math.min(1, v));
+            }
+
+            function getCharacterByRole(role) {
+                return role === 'SERVER' ? serverChar : receiverChar;
+            }
+
+            function getChoiceByRole(role) {
+                return role === 'SERVER' ? serverChoice : receiverChoice;
+            }
+
+            function setChoiceByRole(role, choice) {
+                if (role === 'SERVER') {
+                    serverChoice = choice;
+                    return;
+                }
+                receiverChoice = choice;
+            }
+
+            function getOtherRole(role) {
+                return role === 'SERVER' ? 'RECEIVER' : 'SERVER';
+            }
+
+            function getTennisDisplayPoints(selfPoints, otherPoints) {
+                if (selfPoints === 4) return 'AD';
+                if (selfPoints >= 3 && otherPoints >= 3 && selfPoints === otherPoints) return '40';
+                return scoreMap[selfPoints] || '0';
+            }
+
+            function applyTennisPointToState(state, winnerRole) {
+                const next = { ...state };
+                const loserRole = getOtherRole(winnerRole);
+                let wp = winnerRole === 'SERVER' ? next.serverPoints : next.receiverPoints;
+                let lp = loserRole === 'SERVER' ? next.serverPoints : next.receiverPoints;
+
+                let gameWon = false;
+                let setWon = false;
+                let setWinnerRole = null;
+
+                if (wp >= 3 && lp >= 3) {
+                    if (wp === 3 && lp === 3) {
+                        wp = 4;
+                    } else if (wp === 4) {
+                        gameWon = true;
+                    } else if (lp === 4) {
+                        wp = 3;
+                        lp = 3;
+                    } else {
+                        wp = 4;
+                    }
+                } else {
+                    wp += 1;
+                    if (wp >= 4) {
+                        gameWon = true;
+                    }
+                }
+
+                if (!gameWon) {
+                    if (winnerRole === 'SERVER') {
+                        next.serverPoints = wp;
+                        next.receiverPoints = lp;
+                    } else {
+                        next.receiverPoints = wp;
+                        next.serverPoints = lp;
+                    }
+                    return { next, gameWon, setWon, setWinnerRole };
+                }
+
+                if (winnerRole === 'SERVER') next.serverGames += 1;
+                if (winnerRole === 'RECEIVER') next.receiverGames += 1;
+                next.serverPoints = 0;
+                next.receiverPoints = 0;
+
+                const maxGames = Math.max(next.serverGames, next.receiverGames);
+                const diffGames = Math.abs(next.serverGames - next.receiverGames);
+                if (maxGames >= GAMES_PER_SET && diffGames >= 2) {
+                    setWon = true;
+                    setWinnerRole = next.serverGames > next.receiverGames ? 'SERVER' : 'RECEIVER';
+                } else if (maxGames === (GAMES_PER_SET + 1)) {
+                    setWon = true;
+                    setWinnerRole = next.serverGames > next.receiverGames ? 'SERVER' : 'RECEIVER';
+                }
+
+                if (setWon && setWinnerRole) {
+                    if (setWinnerRole === 'SERVER') next.serverSets += 1;
+                    if (setWinnerRole === 'RECEIVER') next.receiverSets += 1;
+                    next.serverGames = 0;
+                    next.receiverGames = 0;
+                }
+
+                next.currentGameServerRole = getOtherRole(next.currentGameServerRole);
+                return { next, gameWon, setWon, setWinnerRole };
+            }
+
+            function applyCourtPerspective() {
+                if (!courtEl) return;
+                const topHalf = courtEl.querySelector('.top-half');
+                const bottomHalf = courtEl.querySelector('.bottom-half');
+                if (!topHalf || !bottomHalf) return;
+                const localRole = onlineEnabled ? onlineRole : 'SERVER';
+                const localIsReceiver = localRole === 'RECEIVER';
+                const bottomEl = localIsReceiver ? receiverChar : serverChar;
+                const topEl = localIsReceiver ? serverChar : receiverChar;
+
+                if (bottomEl.parentElement !== bottomHalf) bottomHalf.appendChild(bottomEl);
+                if (topEl.parentElement !== topHalf) topHalf.appendChild(topEl);
+
+                bottomEl.classList.add('server');
+                bottomEl.classList.remove('receiver');
+                topEl.classList.add('receiver');
+                topEl.classList.remove('server');
+            }
+
+            function getCourtPointFromElement(el) {
+                const courtRect = courtEl.getBoundingClientRect();
+                const r = el.getBoundingClientRect();
+                return {
+                    x: (r.left + r.width / 2) - courtRect.left,
+                    y: (r.top + r.height / 2) - courtRect.top
+                };
             }
 
             function getShotTypeFromChargeMs(ms) {
@@ -408,13 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const canChooseDir = (onlineRole === currentTurn) && (currentTurn === 'SERVER' || currentTurn === 'RECEIVER');
                 setTurnStatus('');
                 dirBtns.forEach(b => { b.disabled = !canChooseDir; });
-                const canServe = onlineRole === 'SERVER' && currentTurn === 'READY';
+                const canServe = onlineRole === currentGameServerRole && currentTurn === 'READY';
                 serveBtn.disabled = !canServe;
-                const canReception = onlineRole === 'RECEIVER';
+                const canReception = onlineRole === getOtherRole(currentGameServerRole);
                 receptionBtn.disabled = !canReception;
                 const canNext = onlineRole === 'SERVER';
                 nextBtn.disabled = !canNext;
-                if (onlineRole !== 'RECEIVER') {
+                if (onlineRole !== getOtherRole(currentGameServerRole)) {
                     receptionBtn.classList.add('hidden');
                 }
             }
@@ -437,11 +557,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 onlinePeerCount = onlinePeers.size;
+                const prevRole = onlineRole;
                 if (onlineHostId) {
                     onlineRole = (onlinePlayerId && onlinePlayerId === onlineHostId) ? 'SERVER' : 'RECEIVER';
-                    return;
+                } else {
+                    onlineRole = onlineIsCreator ? 'SERVER' : 'RECEIVER';
                 }
-                onlineRole = onlineIsCreator ? 'SERVER' : 'RECEIVER';
+                if (onlineRole !== prevRole) {
+                    applyCourtPerspective();
+                    updateUI();
+                    classicUpdateOnlineAccess();
+                }
             }
 
             function onlineApplyState(state) {
@@ -451,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 serverGames = state.serverGames ?? serverGames;
                 receiverGames = state.receiverGames ?? receiverGames;
                 currentTurn = state.currentTurn ?? currentTurn;
+                currentGameServerRole = state.currentGameServerRole ?? currentGameServerRole;
                 isGameOver = state.isGameOver ?? isGameOver;
                 lastTimingResult = state.lastTimingResult ?? lastTimingResult;
                 if (state.nextBtnText) nextBtn.textContent = state.nextBtnText;
@@ -499,7 +626,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function onlineStartAttackDefenseLocal() {
                 onlineAttackDefenseMode = true;
-                onlineAttackerRole = 'SERVER';
+                currentGameServerRole = 'SERVER';
+                onlineAttackerRole = currentGameServerRole;
                 onlineRound = 0;
                 onlinePendingMove = null;
                 onlinePendingGuess = null;
@@ -529,23 +657,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rect = courtEl.getBoundingClientRect();
                 if (!rect.width || !rect.height) return;
 
-                const fromIsServer = attackerRole === 'SERVER';
-                const startY = fromIsServer ? (rect.height * 0.82) : (rect.height * 0.18);
-                const endY = fromIsServer ? (rect.height * 0.18) : (rect.height * 0.82);
+                const attackerEl = getCharacterByRole(attackerRole);
+                const defenderEl = getCharacterByRole(attackerRole === 'SERVER' ? 'RECEIVER' : 'SERVER');
+                const startPos = getCourtPointFromElement(attackerEl);
+                const endPos = getCourtPointFromElement(defenderEl);
+                const startY = startPos.y;
+                const endY = endPos.y;
                 const endX = dir === 'Left' ? (rect.width * 0.22) : (dir === 'Right' ? (rect.width * 0.78) : (rect.width * 0.50));
-                const startX = rect.width * 0.50;
+                const startX = startPos.x;
                 const dur = 520;
                 const startAt = performance.now();
                 ball.classList.remove('hidden');
                 ball.style.transition = 'none';
+                ball.style.bottom = 'auto';
 
                 function frame(now) {
                     const t = Math.min(1, (now - startAt) / dur);
                     const ease = t < 0.5 ? (2 * t * t) : (1 - Math.pow(-2 * t + 2, 2) / 2);
                     const x = startX + (endX - startX) * ease;
                     const y = startY + (endY - startY) * ease;
-                    ball.style.left = `${(x / rect.width) * 100}%`;
-                    ball.style.top = `${(y / rect.height) * 100}%`;
+                    ball.style.left = `${x}px`;
+                    ball.style.top = `${y}px`;
+                    ball.style.transform = 'translate(-50%, -50%) scale(1)';
                     if (t < 1) requestAnimationFrame(frame);
                 }
 
@@ -560,53 +693,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 onlineResolving = true;
                 const defended = onlinePendingMove === onlinePendingGuess;
-                const scorerRole = defended ? (onlineAttackerRole === 'SERVER' ? 'RECEIVER' : 'SERVER') : onlineAttackerRole;
-                let serverPointsNext = serverPoints;
-                let receiverPointsNext = receiverPoints;
-                let serverGamesNext = serverGames;
-                let receiverGamesNext = receiverGames;
-                let gameWon = false;
-                let serverSetsNext = serverSets;
-                let receiverSetsNext = receiverSets;
-                let setWon = false;
-                let setWinnerRole = null;
-
-                if (scorerRole === 'SERVER') {
-                    if (serverPointsNext < 3) {
-                        serverPointsNext += 1;
-                    } else {
-                        serverGamesNext += 1;
-                        serverPointsNext = 0;
-                        receiverPointsNext = 0;
-                        gameWon = true;
-                    }
-                } else {
-                    if (receiverPointsNext < 3) {
-                        receiverPointsNext += 1;
-                    } else {
-                        receiverGamesNext += 1;
-                        serverPointsNext = 0;
-                        receiverPointsNext = 0;
-                        gameWon = true;
-                    }
-                }
-
-                if (gameWon) {
-                    if (serverGamesNext >= GAMES_PER_SET || receiverGamesNext >= GAMES_PER_SET) {
-                        setWon = true;
-                        setWinnerRole = serverGamesNext >= GAMES_PER_SET ? 'SERVER' : 'RECEIVER';
-                        if (setWinnerRole === 'SERVER') serverSetsNext += 1;
-                        if (setWinnerRole === 'RECEIVER') receiverSetsNext += 1;
-                        serverGamesNext = 0;
-                        receiverGamesNext = 0;
-                        serverPointsNext = 0;
-                        receiverPointsNext = 0;
-                    }
-                }
-                const attackerRoleNext = (scorerRole === onlineAttackerRole)
-                    ? onlineAttackerRole
-                    : (onlineAttackerRole === 'SERVER' ? 'RECEIVER' : 'SERVER');
-
+                const scorerRole = defended ? getOtherRole(onlineAttackerRole) : onlineAttackerRole;
+                const computed = applyTennisPointToState({
+                    serverPoints,
+                    receiverPoints,
+                    serverGames,
+                    receiverGames,
+                    serverSets,
+                    receiverSets,
+                    currentGameServerRole
+                }, scorerRole);
+                const nextState = computed.next;
                 const result = {
                     round: onlineRound,
                     attackerRole: onlineAttackerRole,
@@ -614,16 +711,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     guess: onlinePendingGuess,
                     defended,
                     scorerRole,
-                    serverPoints: serverPointsNext,
-                    receiverPoints: receiverPointsNext,
-                    serverGames: serverGamesNext,
-                    receiverGames: receiverGamesNext,
-                    serverSets: serverSetsNext,
-                    receiverSets: receiverSetsNext,
-                    gameWon,
-                    setWon,
-                    setWinnerRole,
-                    attackerRoleNext
+                    serverPoints: nextState.serverPoints,
+                    receiverPoints: nextState.receiverPoints,
+                    serverGames: nextState.serverGames,
+                    receiverGames: nextState.receiverGames,
+                    serverSets: nextState.serverSets,
+                    receiverSets: nextState.receiverSets,
+                    currentGameServerRole: nextState.currentGameServerRole,
+                    gameWon: computed.gameWon,
+                    setWon: computed.setWon,
+                    setWinnerRole: computed.setWinnerRole
                 };
 
                 onlineLastResult = result;
@@ -642,6 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 receiverGames = payload.receiverGames ?? receiverGames;
                 serverSets = payload.serverSets ?? serverSets;
                 receiverSets = payload.receiverSets ?? receiverSets;
+                currentGameServerRole = payload.currentGameServerRole ?? currentGameServerRole;
                 if (payload.gameWon && payload.scorerRole) {
                     onlineScoreFlash = { scorerRole: payload.scorerRole, until: Date.now() + 5000 };
                 } else {
@@ -659,9 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof payload.round === 'number') {
                     onlineRound = payload.round + 1;
                 }
-                if (payload.attackerRoleNext) {
-                    onlineAttackerRole = payload.attackerRoleNext;
-                }
+                onlineAttackerRole = currentGameServerRole;
 
                 if (typeof payload.move === 'string' && typeof payload.guess === 'string') {
                     const attackerChar = payload.attackerRole === 'SERVER' ? serverChar : receiverChar;
@@ -749,21 +845,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (msg.type === 'choice') {
-                    if (msg.turn === 'SERVER') {
-                        serverChoice = msg.choice;
-                        moveCharacter(serverChar, msg.choice);
-                        currentTurn = 'RECEIVER';
-                        turnIndicator.textContent = 'VEZ DO RECEBEDOR';
+                    if (msg.turn === 'SERVER' || msg.turn === 'RECEIVER') {
+                        setChoiceByRole(msg.turn, msg.choice);
+                        moveCharacter(getCharacterByRole(msg.turn), msg.choice);
                         dirBtns.forEach(b => b.classList.remove('selected'));
-                        classicUpdateOnlineAccess();
-                        return;
-                    }
-                    if (msg.turn === 'RECEIVER') {
-                        receiverChoice = msg.choice;
-                        moveCharacter(receiverChar, msg.choice);
+
+                        const serverRole = currentGameServerRole;
+                        const receiverRole = getOtherRole(serverRole);
+                        if (msg.turn === serverRole) {
+                            currentTurn = receiverRole;
+                            turnIndicator.textContent = 'VEZ DO RECEBEDOR';
+                            classicUpdateOnlineAccess();
+                            return;
+                        }
+
                         currentTurn = 'READY';
                         turnIndicator.textContent = 'SACADOR: CLIQUE EM SACAR PARA PARAR A BARRA!';
-                        if (onlineRole === 'SERVER') {
+                        if (onlineRole === serverRole) {
                             serveBtn.classList.remove('hidden');
                             serveBtn.textContent = 'SACAR!';
                             startTimingMeter();
@@ -1252,6 +1350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 easyHeight = 250;
                 hardHeight = 140;
                 perfectHeight = 35;
+                applyCourtPerspective();
                 resetMatch();
                 classicUpdateOnlineAccess();
             }
@@ -1277,6 +1376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 serverPoints = 0; receiverPoints = 0;
                 serverGames = 0; receiverGames = 0;
                 serverSets = 0; receiverSets = 0;
+                currentGameServerRole = 'SERVER';
                 isGameOver = false;
                 nextBtn.textContent = 'CONTINUAR';
                 lastTimingResult = 'ERROU';
@@ -1399,6 +1499,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         onlineTryResolveAttackDefense();
                         return;
                     }
+                    if (isSinglePlayer && currentTurn !== 'SERVER') {
+                        return;
+                    }
                     if (onlineEnabled && onlineRole !== currentTurn) {
                         return;
                     }
@@ -1406,55 +1509,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     dirBtns.forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
 
-                    if (currentTurn === 'SERVER') {
-                        serverChoice = choice;
-                        moveCharacter(serverChar, choice);
+                    if (currentTurn !== 'SERVER' && currentTurn !== 'RECEIVER') return;
+                    const role = currentTurn;
+                    setChoiceByRole(role, choice);
+                    moveCharacter(getCharacterByRole(role), choice);
 
-                        if (isSinglePlayer) {
+                    if (onlineEnabled) {
+                        onlineBroadcast({ type: 'choice', turn: role, choice });
+                    }
+
+                    const serverRole = currentGameServerRole;
+                    const receiverRole = getOtherRole(serverRole);
+
+                    if (role === serverRole) {
+                        currentTurn = receiverRole;
+                        turnIndicator.textContent = 'VEZ DO RECEBEDOR';
+                        dirBtns.forEach(b => b.classList.remove('selected'));
+                        if (isSinglePlayer && receiverRole === 'RECEIVER') {
                             const options = ['Left', 'Middle', 'Right'];
-                            receiverChoice = options[Math.floor(Math.random() * options.length)];
-                            moveCharacter(receiverChar, receiverChoice);
-                            currentTurn = 'READY';
-                            serveBtn.classList.remove('hidden');
-                            serveBtn.textContent = 'SACAR!';
-                            turnIndicator.textContent = 'CLIQUE EM SACAR PARA PARAR A BARRA!';
-                            startTimingMeter();
-                            classicUpdateOnlineAccess();
-                        } else {
-                            if (onlineEnabled) {
-                                currentTurn = 'RECEIVER';
-                                turnIndicator.textContent = 'VEZ DO RECEBEDOR';
-                                dirBtns.forEach(b => b.classList.remove('selected'));
-                                onlineBroadcast({ type: 'choice', turn: 'SERVER', choice });
+                            const aiChoice = options[Math.floor(Math.random() * options.length)];
+                            setTimeout(() => {
+                                setChoiceByRole('RECEIVER', aiChoice);
+                                moveCharacter(receiverChar, aiChoice);
+                                currentTurn = 'READY';
+                                serveBtn.classList.remove('hidden');
+                                serveBtn.textContent = 'SACAR!';
+                                turnIndicator.textContent = 'SACADOR: CLIQUE EM SACAR PARA PARAR A BARRA!';
+                                if (serverRole === 'SERVER') {
+                                    startTimingMeter();
+                                }
                                 classicUpdateOnlineAccess();
-                            } else {
-                                setTimeout(() => {
-                                    currentTurn = 'RECEIVER';
-                                    turnIndicator.textContent = 'VEZ DO RECEBEDOR';
-                                    dirBtns.forEach(b => b.classList.remove('selected'));
-                                }, 500);
-                            }
-                        }
-                    } else if (currentTurn === 'RECEIVER') {
-                        receiverChoice = choice;
-                        moveCharacter(receiverChar, choice);
-                        currentTurn = 'READY';
-                        serveBtn.classList.remove('hidden');
-                        serveBtn.textContent = 'SACAR!';
-                        turnIndicator.textContent = 'SACADOR: CLIQUE EM SACAR PARA PARAR A BARRA!';
-                        if (!onlineEnabled || onlineRole === 'SERVER') {
-                            startTimingMeter();
-                        } else {
-                            timingMeterContainer.classList.add('hidden');
-                        }
-                        if (onlineEnabled) {
-                            if (onlineRole !== 'SERVER') {
-                                serveBtn.classList.add('hidden');
-                            }
-                            onlineBroadcast({ type: 'choice', turn: 'RECEIVER', choice });
+                            }, 500);
                         }
                         classicUpdateOnlineAccess();
+                        return;
                     }
+
+                    currentTurn = 'READY';
+                    serveBtn.classList.remove('hidden');
+                    serveBtn.textContent = 'SACAR!';
+                    turnIndicator.textContent = 'SACADOR: CLIQUE EM SACAR PARA PARAR A BARRA!';
+                    if (!onlineEnabled || onlineRole === serverRole) {
+                        startTimingMeter();
+                    } else {
+                        timingMeterContainer.classList.add('hidden');
+                    }
+                    if (onlineEnabled && onlineRole !== serverRole) {
+                        serveBtn.classList.add('hidden');
+                    }
+                    if (isSinglePlayer && serverRole === 'RECEIVER') {
+                        serveBtn.classList.add('hidden');
+                        const autoDelay = 260 + Math.random() * 900;
+                        setTimeout(() => {
+                            if (currentTurn !== 'READY' || currentGameServerRole !== 'RECEIVER') return;
+                            stopTimingMeterCore();
+                            currentTurn = 'PLAYING';
+                            playAnimation();
+                            classicUpdateOnlineAccess();
+                        }, autoDelay);
+                    }
+                    classicUpdateOnlineAccess();
                 });
             });
 
@@ -1481,7 +1595,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (gameMode !== 'classic') return;
                 if (serveBtn.classList.contains('hidden')) return;
                 if (currentTurn !== 'READY') return;
-                if (onlineEnabled && onlineRole !== 'SERVER') return;
+                if (isSinglePlayer && currentGameServerRole !== 'SERVER') return;
+                if (onlineEnabled && onlineRole !== currentGameServerRole) return;
 
                 stopTimingMeterCore();
                 serveBtn.classList.add('hidden');
@@ -1494,7 +1609,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             receptionBtn.addEventListener('click', () => {
-                if (onlineEnabled && onlineRole !== 'RECEIVER') return;
+                if (isSinglePlayer && getOtherRole(currentGameServerRole) !== 'SERVER') return;
+                if (onlineEnabled && onlineRole !== getOtherRole(currentGameServerRole)) return;
                 if (ballCrossedNet) {
                     perfectTimingReception = true;
                     receptionBtn.classList.add('hidden');
@@ -1529,17 +1645,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 ball.style.bottom = 'auto';
 
                 const rect = courtEl.getBoundingClientRect();
-                const fromLeftPct = parseFloat((serverChar.style.left || '50%').replace('%', '')) || 50;
-                const toLeftPct = serverChoice === 'Left' ? 20 : serverChoice === 'Right' ? 80 : 50;
-                const fromX = rect.width * (fromLeftPct / 100);
+                const servingRole = currentGameServerRole;
+                const receivingRole = getOtherRole(servingRole);
+                const servingChoice = getChoiceByRole(servingRole);
+                const receivingChoice = getChoiceByRole(receivingRole);
+                const toLeftPct = servingChoice === 'Left' ? 20 : servingChoice === 'Right' ? 80 : 50;
                 const toX = rect.width * (toLeftPct / 100);
 
-                const fromBottomPct = 10;
-                let toBottomPct = 105;
-                if (timingResult === 'FÁCIL') toBottomPct = 40;
-                if (timingResult === 'ERROU') toBottomPct = 30;
-                const fromY = rect.height * (1 - fromBottomPct / 100);
-                const toY = rect.height * (1 - toBottomPct / 100);
+                const serverEl = getCharacterByRole(servingRole);
+                const receiverEl = getCharacterByRole(receivingRole);
+                const serverPos = getCourtPointFromElement(serverEl);
+                const receiverPos = getCourtPointFromElement(receiverEl);
+                const dirY = receiverPos.y - serverPos.y;
+                const dirSign = dirY === 0 ? 1 : Math.sign(dirY);
+                const netY = rect.height * 0.5;
+                const fromX = serverPos.x;
+                const fromY = serverPos.y;
+                let toY = receiverPos.y + dirSign * (rect.height * 0.15);
+                if (timingResult === 'FÁCIL') toY = netY - dirSign * (rect.height * 0.10);
+                if (timingResult === 'ERROU') toY = netY - dirSign * (rect.height * 0.20);
 
                 const baseMs = 1200 - power * 780;
                 const durMs = classicShotType === 'TOPSPIN' ? baseMs * 0.95 : classicShotType === 'SLICE' ? baseMs * 1.05 : baseMs;
@@ -1559,7 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => { ballCrossedNet = true; }, durationMs / 2);
                 }
 
-                let isAce = serverChoice !== receiverChoice;
+                let isAce = servingChoice !== receivingChoice;
                 if (timingResult === 'PERFEITO') isAce = true;
                 if (timingResult === 'FÁCIL' || timingResult === 'ERROU') isAce = false;
 
@@ -1589,20 +1713,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (onlineEnabled && onlineRole !== 'SERVER') {
                     return;
                 }
+                const sacadorRole = currentGameServerRole;
+                const recebedorRole = getOtherRole(sacadorRole);
                 let winner = '';
                 let message = '';
 
                 if (timingResult === 'ERROU') {
-                    winner = 'RECEIVER';
+                    winner = recebedorRole;
                     message = 'ERROU O TIMING! A bola mal saiu do lugar.';
                 } else if (timingResult === 'FÁCIL') {
-                    winner = 'RECEIVER';
+                    winner = recebedorRole;
                     message = 'SAQUE CURTO! A bola não chegou na quadra adversária.';
-                } else if (perfectTimingReception && serverChoice === receiverChoice) {
-                    winner = 'RECEIVER';
+                } else if (perfectTimingReception && getChoiceByRole(sacadorRole) === getChoiceByRole(recebedorRole)) {
+                    winner = recebedorRole;
                     message = 'DEFESA PERFEITA! Ponto do Recebedor!';
                 } else if (isAce) {
-                    winner = 'SERVER';
+                    winner = sacadorRole;
                     if (timingResult === 'PERFEITO') {
                         message = 'PERFEITO! Saque impossível!';
                         triggerScreenShake();
@@ -1612,7 +1738,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         message = 'FÁCIL! Mas o sacador venceu.';
                     }
                 } else {
-                    winner = 'RECEIVER';
+                    winner = recebedorRole;
                     message = 'Defesa espetacular! Ponto do Recebedor!';
                 }
 
@@ -1620,7 +1746,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateScoring(winner);
 
                 if (onlineEnabled) {
-                    const shake = winner === 'SERVER' && timingResult === 'PERFEITO';
+                    const shake = winner === sacadorRole && timingResult === 'PERFEITO';
                     onlineBroadcast({
                         type: 'result',
                         winner,
@@ -1630,13 +1756,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             receiverPoints,
                             serverGames,
                             receiverGames,
+                            currentGameServerRole,
                             currentTurn,
                             isGameOver,
                             lastTimingResult,
                             nextBtnText: nextBtn.textContent
                         },
                         modal: {
-                            title: winner === 'SERVER' ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
+                            title: winner === sacadorRole ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
                             message,
                             starsCount: getStarsForTimingResult(timingResult)
                         }
@@ -1644,27 +1771,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 showResultModal(
-                    winner === 'SERVER' ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
+                    winner === sacadorRole ? 'PONTO DO SACADOR!' : 'PONTO DO RECEBEDOR!',
                     message,
                     getStarsForTimingResult(timingResult)
                 );
             }
 
             function updateScoring(winner) {
-                if (winner === 'SERVER') {
-                    serverPoints++;
-                } else {
-                    receiverPoints++;
-                }
+                const computed = applyTennisPointToState({
+                    serverPoints,
+                    receiverPoints,
+                    serverGames,
+                    receiverGames,
+                    serverSets,
+                    receiverSets,
+                    currentGameServerRole
+                }, winner);
+                serverPoints = computed.next.serverPoints;
+                receiverPoints = computed.next.receiverPoints;
+                serverGames = computed.next.serverGames;
+                receiverGames = computed.next.receiverGames;
+                serverSets = computed.next.serverSets;
+                receiverSets = computed.next.receiverSets;
+                currentGameServerRole = computed.next.currentGameServerRole;
 
-                if (serverPoints >= 4 && serverPoints > receiverPoints) {
-                    winGame('SERVER');
-                } else if (receiverPoints >= 4 && receiverPoints > serverPoints) {
-                    winGame('RECEIVER');
-                } else if (serverPoints === 3 && receiverPoints === 3) {
-                    turnIndicator.textContent = 'PONTO DE OURO!';
+                if (serverSets >= SETS_TO_WIN_MATCH || receiverSets >= SETS_TO_WIN_MATCH) {
+                    isGameOver = true;
+                    const overallWinner = serverSets >= SETS_TO_WIN_MATCH ? 'JOGADOR 1' : 'JOGADOR 2';
+                    resultTitle.textContent = 'FIM DE JOGO!';
+                    resultText.innerHTML = `<strong>${overallWinner} VENCEU A PARTIDA!</strong>`;
+                    nextBtn.textContent = 'VOLTAR AO MENU';
                 }
-
                 updateUI();
             }
 
@@ -1746,18 +1883,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         serverScoreEl.textContent = '0';
                         receiverScoreEl.textContent = 'GAME';
                     } else {
-                        serverScoreEl.textContent = scoreMap[serverPoints] || '40';
-                        receiverScoreEl.textContent = scoreMap[receiverPoints] || '40';
+                        serverScoreEl.textContent = getTennisDisplayPoints(serverPoints, receiverPoints);
+                        receiverScoreEl.textContent = getTennisDisplayPoints(receiverPoints, serverPoints);
                     }
                     serverGamesEl.textContent = String(serverGames);
                     receiverGamesEl.textContent = String(receiverGames);
                     renderServerSetMarks();
                     return;
                 }
-                serverScoreEl.textContent = scoreMap[serverPoints] || '40';
-                receiverScoreEl.textContent = scoreMap[receiverPoints] || '40';
+                serverScoreEl.textContent = getTennisDisplayPoints(serverPoints, receiverPoints);
+                receiverScoreEl.textContent = getTennisDisplayPoints(receiverPoints, serverPoints);
                 serverGamesEl.textContent = serverGames;
                 receiverGamesEl.textContent = receiverGames;
+                if (!onlineEnabled) {
+                    if (playerNameEls[0]) playerNameEls[0].textContent = currentGameServerRole === 'SERVER' ? 'SACADOR' : 'RECEBEDOR';
+                    if (playerNameEls[1]) playerNameEls[1].textContent = currentGameServerRole === 'RECEIVER' ? 'SACADOR' : 'RECEBEDOR';
+                }
                 renderServerSetMarks();
             }
 
@@ -1768,11 +1909,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function createSandParticles(winner) {
                 const court = document.querySelector('.court');
+                const rect = courtEl?.getBoundingClientRect?.() || { width: 0, height: 0 };
+                const landingRole = getOtherRole(winner);
+                const landingEl = getCharacterByRole(landingRole);
+                const landingPos = (rect.width && rect.height) ? getCourtPointFromElement(landingEl) : null;
+                const baseLeft = landingPos ? ((landingPos.x / rect.width) * 100) : 50;
+                const baseTop = landingPos ? ((landingPos.y / rect.height) * 100) : 50;
                 for (let i = 0; i < 15; i++) {
                     const p = document.createElement('div');
                     p.className = 'particle';
-                    p.style.left = (40 + Math.random() * 20) + '%';
-                    p.style.top = winner === 'SERVER' ? '10%' : '85%';
+                    const spreadX = (Math.random() * 20) - 10;
+                    const spreadY = (Math.random() * 10) - 5;
+                    const left = Math.max(5, Math.min(95, baseLeft + spreadX));
+                    const top = Math.max(5, Math.min(95, baseTop + spreadY));
+                    p.style.left = `${left}%`;
+                    p.style.top = `${top}%`;
                     court.appendChild(p);
 
                     const angle = Math.random() * Math.PI * 2;
@@ -1835,7 +1986,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             function resetPoint() {
-                currentTurn = 'SERVER';
+                currentTurn = currentGameServerRole;
                 serverChoice = null;
                 receiverChoice = null;
                 ballCrossedNet = false;
@@ -1857,8 +2008,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 ball.classList.add('hidden');
                 ball.classList.remove('fire-trail');
                 ball.style.transition = 'none';
-                ball.style.top = 'auto';
-                ball.style.bottom = '10%';
+                ball.style.bottom = 'auto';
+                if (courtEl) {
+                    const rect = courtEl.getBoundingClientRect();
+                    if (rect.width && rect.height) {
+                        const startPos = getCourtPointFromElement(getCharacterByRole(currentGameServerRole));
+                        ball.style.left = `${startPos.x}px`;
+                        ball.style.top = `${startPos.y}px`;
+                        ball.style.transform = 'translate(-50%, -50%) scale(1)';
+                    }
+                }
+                if (isSinglePlayer && currentTurn === 'RECEIVER') {
+                    const options = ['Left', 'Middle', 'Right'];
+                    const aiChoice = options[Math.floor(Math.random() * options.length)];
+                    setChoiceByRole('RECEIVER', aiChoice);
+                    moveCharacter(receiverChar, aiChoice);
+                    currentTurn = 'SERVER';
+                    turnIndicator.textContent = 'VEZ DO RECEBEDOR';
+                    dirBtns.forEach(b => b.classList.remove('selected'));
+                }
+                classicUpdateOnlineAccess();
             }
 
             function pongSetUi() {
