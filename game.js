@@ -707,6 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = {
                     round: onlineRound,
                     attackerRole: onlineAttackerRole,
+                    attackerRoleNext: nextState.currentGameServerRole,
                     move: onlinePendingMove,
                     guess: onlinePendingGuess,
                     defended,
@@ -733,13 +734,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!onlineAttackDefenseMode) return;
                 if (typeof payload.round === 'number' && payload.round !== onlineRound) return;
 
+                const prevGameServerRole = currentGameServerRole;
                 serverPoints = payload.serverPoints ?? serverPoints;
                 receiverPoints = payload.receiverPoints ?? receiverPoints;
                 serverGames = payload.serverGames ?? serverGames;
                 receiverGames = payload.receiverGames ?? receiverGames;
                 serverSets = payload.serverSets ?? serverSets;
                 receiverSets = payload.receiverSets ?? receiverSets;
-                currentGameServerRole = payload.currentGameServerRole ?? currentGameServerRole;
+                if (payload.currentGameServerRole) {
+                    currentGameServerRole = payload.currentGameServerRole;
+                } else if (payload.gameWon) {
+                    currentGameServerRole = getOtherRole(prevGameServerRole);
+                }
                 if (payload.gameWon && payload.scorerRole) {
                     onlineScoreFlash = { scorerRole: payload.scorerRole, until: Date.now() + 5000 };
                 } else {
@@ -757,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof payload.round === 'number') {
                     onlineRound = payload.round + 1;
                 }
-                onlineAttackerRole = currentGameServerRole;
+                onlineAttackerRole = payload.attackerRoleNext || currentGameServerRole;
 
                 if (typeof payload.move === 'string' && typeof payload.guess === 'string') {
                     const attackerChar = payload.attackerRole === 'SERVER' ? serverChar : receiverChar;
