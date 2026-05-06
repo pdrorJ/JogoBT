@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const nextBtn = document.getElementById('next-point-btn');
             const playAgainBtn = document.getElementById('play-again-btn');
             const backMenuBtn = document.getElementById('back-menu-btn');
+            const rulesBtn = document.getElementById('rules-btn');
+            const rulesModal = document.getElementById('rules-modal');
+            const rulesCloseBtn = document.getElementById('rules-close-btn');
 
             const turnIndicator = document.getElementById('turn-indicator');
             const turnStatusEl = document.getElementById('turn-status');
@@ -270,6 +273,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, delayMs);
             }
 
+            function openRulesModal() {
+                if (!rulesModal) return;
+                rulesModal.classList.remove('hidden');
+            }
+
+            function closeRulesModal() {
+                if (!rulesModal) return;
+                rulesModal.classList.add('hidden');
+            }
+
             function showPointMessage(winnerRole) {
                 const mine = (onlineEnabled && onlineRole) ? (winnerRole === onlineRole) : (isSinglePlayer ? (winnerRole === 'SERVER') : false);
                 const winnerName = getDisplayNameForRole(winnerRole);
@@ -297,8 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             function getTennisDisplayPoints(selfPoints, otherPoints) {
-                if (selfPoints === 4) return 'AD';
-                if (selfPoints >= 3 && otherPoints >= 3 && selfPoints === otherPoints) return '40';
+                if (selfPoints >= 3 && otherPoints >= 3) return '40';
                 return scoreMap[selfPoints] || '0';
             }
 
@@ -317,16 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let gameWon = false;
 
                 if (wp >= 3 && lp >= 3) {
-                    if (wp === 3 && lp === 3) {
-                        wp = 4;
-                    } else if (wp === 4) {
-                        gameWon = true;
-                    } else if (lp === 4) {
-                        wp = 3;
-                        lp = 3;
-                    } else {
-                        wp = 4;
-                    }
+                    gameWon = true;
                 } else {
                     wp += 1;
                     if (wp >= 4) {
@@ -1319,6 +1322,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             backMenuBtn.addEventListener('click', backToLanding);
 
+            if (rulesBtn) {
+                rulesBtn.addEventListener('click', openRulesModal);
+            }
+            if (rulesCloseBtn) {
+                rulesCloseBtn.addEventListener('click', closeRulesModal);
+            }
+            if (rulesModal) {
+                rulesModal.addEventListener('click', (e) => {
+                    if (e.target === rulesModal) closeRulesModal();
+                });
+            }
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (!rulesModal || rulesModal.classList.contains('hidden')) return;
+                closeRulesModal();
+            });
+
             onlineToggleBtn.addEventListener('click', () => {
                 const isOpen = !onlineSetupEl.classList.contains('hidden');
                 onlineSetupEl.classList.toggle('hidden', isOpen);
@@ -1880,13 +1900,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function renderServerSetMarks() {
                 if (!serverSetMarksEl) return;
-                serverSetMarksEl.innerHTML = `<span style="opacity:0.8; font-weight: 900; letter-spacing: 1px;">MELHOR DE 3 GAMES (2 PARA VENCER)</span>`;
-                serverSetMarksEl.style.marginTop = '6px';
-                serverSetMarksEl.style.minHeight = '18px';
-                serverSetMarksEl.style.fontWeight = '900';
-                serverSetMarksEl.style.letterSpacing = '2px';
-                serverSetMarksEl.style.textAlign = 'left';
-                serverSetMarksEl.style.textShadow = '0 0 16px rgba(47, 255, 143, 0.25)';
+                serverSetMarksEl.innerHTML = '';
+                serverSetMarksEl.style.marginTop = '0';
+                serverSetMarksEl.style.minHeight = '0';
+                serverSetMarksEl.style.fontWeight = '';
+                serverSetMarksEl.style.letterSpacing = '';
+                serverSetMarksEl.style.textAlign = '';
+                serverSetMarksEl.style.textShadow = '';
             }
 
             function updateUI() {

@@ -671,6 +671,12 @@
             color: var(--text-brown);
         }
 
+        .menu-footer-actions {
+            margin-top: 14px;
+            display: flex;
+            justify-content: center;
+        }
+
         .menu-toggle-row {
             display: flex;
             align-items: center;
@@ -1655,6 +1661,34 @@
             justify-content: center;
             flex-wrap: wrap;
             margin-top: 14px;
+        }
+
+        .rules-card {
+            text-align: left;
+        }
+
+        .rules-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 6px 0;
+            color: var(--navy);
+            font-weight: 900;
+            line-height: 1.25;
+        }
+
+        .rules-list li {
+            padding: 10px 10px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 2px solid rgba(0, 0, 0, 0.06);
+            margin-bottom: 10px;
+        }
+
+        .rules-key {
+            color: rgba(0, 0, 0, 0.60);
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-right: 6px;
         }
 
         .stars-header {

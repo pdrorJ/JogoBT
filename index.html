@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -48,6 +48,9 @@
                         <div id="online-status" class="online-status">Desligado.</div>
                     </div>
                 </div>
+            </div>
+            <div class="menu-footer-actions">
+                <button id="rules-btn" class="secondary-btn" type="button">REGRAS</button>
             </div>
         </div>
     </div>
@@ -149,6 +152,25 @@
             <div class="modal-actions">
                 <button id="play-again-btn" class="secondary-btn hidden" type="button">JOGAR OUTRA</button>
                 <button id="next-point-btn" class="main-btn bubble-btn" type="button">CONTINUAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rules-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Regras">
+        <div class="modal-card rules-card">
+            <div class="ribbon-title">
+                <h2>REGRAS</h2>
+            </div>
+            <div class="modal-content-body">
+                <ul class="rules-list">
+                    <li><span class="rules-key">Formato:</span> Melhor de 3 games (2 para vencer)</li>
+                    <li><span class="rules-key">Pontuação:</span> 0, 15, 30, 40 e NO-AD (40x40 próximo ponto decide)</li>
+                    <li><span class="rules-key">Saque:</span> o sacador saca o game inteiro e alterna no próximo game</li>
+                    <li><span class="rules-key">Posição:</span> você sempre joga na quadra de baixo</li>
+                </ul>
+            </div>
+            <div class="modal-actions">
+                <button id="rules-close-btn" class="main-btn bubble-btn" type="button">FECHAR</button>
             </div>
         </div>
     </div>
