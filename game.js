@@ -55,7 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const receptionBtn = document.getElementById('hit-reception-btn');
             const nextBtn = document.getElementById('next-point-btn');
             const playAgainBtn = document.getElementById('play-again-btn');
-            const backMenuBtn = document.getElementById('back-menu-btn');
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const hamburgerHomeBtn = document.getElementById('hamburger-home');
+            const hamburgerRulesBtn = document.getElementById('hamburger-rules');
             const rulesBtn = document.getElementById('rules-btn');
             const rulesModal = document.getElementById('rules-modal');
             const rulesCloseBtn = document.getElementById('rules-close-btn');
@@ -281,6 +284,19 @@ document.addEventListener('DOMContentLoaded', () => {
             function closeRulesModal() {
                 if (!rulesModal) return;
                 rulesModal.classList.add('hidden');
+            }
+
+            function closeHamburgerMenu() {
+                if (!hamburgerMenu) return;
+                hamburgerMenu.classList.add('hidden');
+                if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
+            }
+
+            function toggleHamburgerMenu() {
+                if (!hamburgerMenu) return;
+                const isHidden = hamburgerMenu.classList.contains('hidden');
+                hamburgerMenu.classList.toggle('hidden', !isHidden);
+                if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
             }
 
             function showPointMessage(winnerRole) {
@@ -1317,10 +1333,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 isGameOver = false;
                 nextBtn.textContent = 'CONTINUAR';
                 gameMode = 'classic';
+                closeHamburgerMenu();
                 openMenu();
             }
 
-            backMenuBtn.addEventListener('click', backToLanding);
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', () => {
+                    toggleHamburgerMenu();
+                });
+            }
+            if (hamburgerHomeBtn) {
+                hamburgerHomeBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    backToLanding();
+                });
+            }
+            if (hamburgerRulesBtn) {
+                hamburgerRulesBtn.addEventListener('click', () => {
+                    closeHamburgerMenu();
+                    openRulesModal();
+                });
+            }
+            window.addEventListener('pointerdown', (e) => {
+                if (!hamburgerMenu || hamburgerMenu.classList.contains('hidden')) return;
+                if (hamburgerBtn && hamburgerBtn.contains(e.target)) return;
+                if (hamburgerMenu.contains(e.target)) return;
+                closeHamburgerMenu();
+            });
 
             if (rulesBtn) {
                 rulesBtn.addEventListener('click', openRulesModal);
@@ -1337,6 +1376,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key !== 'Escape') return;
                 if (!rulesModal || rulesModal.classList.contains('hidden')) return;
                 closeRulesModal();
+            });
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (!hamburgerMenu || hamburgerMenu.classList.contains('hidden')) return;
+                closeHamburgerMenu();
             });
 
             onlineToggleBtn.addEventListener('click', () => {

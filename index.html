@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -18,7 +18,7 @@
         <div class="menu-content">
             <h1>PLAY NA QUADRA</h1>
             <div class="menu-characters">
-                <div class="menu-warmup">Aquecimento BT</div>
+                <div class="menu-warmup">BT</div>
             </div>
             <button id="start-game-btn" class="main-btn bubble-btn">JOGAR</button>
             <div class="menu-options">
@@ -78,8 +78,11 @@
                 </div>
             </div>
         </header>
-
-        <button id="back-menu-btn" class="secondary-btn" type="button">VOLTAR AO MENU</button>
+        <button id="hamburger-btn" class="secondary-btn hamburger-btn" type="button" aria-label="Menu" aria-haspopup="menu" aria-expanded="false">☰</button>
+        <div id="hamburger-menu" class="hamburger-menu hidden" role="menu" aria-label="Menu">
+            <button id="hamburger-home" class="secondary-btn hamburger-item" type="button" role="menuitem">VOLTAR AO INÍCIO</button>
+            <button id="hamburger-rules" class="secondary-btn hamburger-item" type="button" role="menuitem">REGRAS</button>
+        </div>
 
         <!-- Barra de Timing movida para o topo e alinhada via inline style -->
         <div id="timing-meter-container" class="hidden" style="top: 70px !important; transform: none !important;">
@@ -111,8 +114,6 @@
                         <div class="char-racket">🎾</div>
                     </div>
                 </div>
-
-                <div class="baseline-label" aria-hidden="true">Aquecimento</div>
 
                 <!-- Ball -->
                 <div id="game-ball" class="ball hidden"></div>

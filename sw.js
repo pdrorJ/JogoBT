@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'bt-online-v28';
+const CACHE_VERSION = 'bt-online-v29';
 const PRECACHE_URLS = ['./', './index.html', './style.css', './game.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {
