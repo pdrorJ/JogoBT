@@ -85,6 +85,7 @@
         h1 {
             color: var(--header-orange);
             font-size: 2.6rem;
+            line-height: 1.05;
             text-shadow: 0 0 22px rgba(255, 180, 90, 0.22), 0 8px 28px rgba(0,0,0,0.55);
             margin-bottom: 14px;
             text-align: center;
@@ -1111,6 +1112,22 @@
             :root { --ui-space: 232px; }
             .game-controls { padding: 12px; }
             .dir-btn { padding: 9px 14px; font-size: 1rem; }
+        }
+
+        @media (max-width: 420px) {
+            h1 {
+                font-size: 2.05rem;
+                margin-bottom: 10px;
+            }
+
+            .menu-content {
+                padding: 20px 14px;
+            }
+
+            .menu-warmup {
+                font-size: 1.25rem;
+                letter-spacing: 0.6px;
+            }
         }
         .court::before {
             content: '';
